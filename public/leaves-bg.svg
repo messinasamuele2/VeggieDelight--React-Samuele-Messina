@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <filter id="blur"><feGaussianBlur stdDeviation="18"/></filter>
+    <linearGradient id="wash" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d9f0d5"/><stop offset="1" stop-color="#6da66a"/></linearGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#wash)"/>
+  <g filter="url(#blur)" opacity=".85" fill="#3f873e">
+    <ellipse cx="180" cy="120" rx="250" ry="75" transform="rotate(35 180 120)"/>
+    <ellipse cx="480" cy="-30" rx="280" ry="85" transform="rotate(-25 480 -30)"/>
+    <ellipse cx="1340" cy="120" rx="310" ry="95" transform="rotate(28 1340 120)"/>
+    <ellipse cx="1510" cy="550" rx="260" ry="80" transform="rotate(-35 1510 550)"/>
+    <ellipse cx="210" cy="770" rx="300" ry="90" transform="rotate(-20 210 770)"/>
+    <ellipse cx="1120" cy="900" rx="360" ry="100" transform="rotate(18 1120 900)"/>
+  </g>
+  <g filter="url(#blur)" opacity=".65" fill="#9bcf8e">
+    <ellipse cx="780" cy="180" rx="260" ry="80" transform="rotate(65 780 180)"/>
+    <ellipse cx="880" cy="720" rx="300" ry="90" transform="rotate(-55 880 720)"/>
+    <ellipse cx="70" cy="460" rx="240" ry="70" transform="rotate(60 70 460)"/>
+  </g>
+</svg>
