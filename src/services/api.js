@@ -1,8 +1,26 @@
-import axios from 'axios';
-
-const API_KEY = import.meta.env.VITE_SPOONACULAR_API_KEY;
-const BASE_URL = 'https://api.spoonacular.com/recipes';
 const MEALDB_URL = 'https://www.themealdb.com/api/json/v1/1';
+const REQUEST_TIMEOUT_MS = 10000;
+
+const fetchJson = async (url, options = {}) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const abortRequest = () => controller.abort();
+
+  if (options.signal?.aborted) {
+    abortRequest();
+  } else {
+    options.signal?.addEventListener('abort', abortRequest, { once: true });
+  }
+
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+    return response.json();
+  } finally {
+    clearTimeout(timeoutId);
+    options.signal?.removeEventListener('abort', abortRequest);
+  }
+};
 
 const mapMealToRecipe = (meal) => ({
   id: `meal-${meal.idMeal}`,
@@ -22,64 +40,27 @@ const mapMealToRecipe = (meal) => ({
 });
 
 const fetchFromMealDb = async (query = '', options = {}) => {
-  const response = await axios.get(`${MEALDB_URL}/filter.php`, {
-    params: { c: 'Vegetarian' },
-    signal: options.signal,
-  });
-  const meals = response.data?.meals || [];
-  const normalizedQuery = query.trim().toLowerCase();
+  const data = await fetchJson(`${MEALDB_URL}/filter.php?c=Vegetarian`, options);
+  const meals = Array.isArray(data?.meals) ? data.meals : [];
+  const normalizedQuery = query.trim().toLocaleLowerCase();
   const filteredMeals = normalizedQuery
-    ? meals.filter((meal) => meal.strMeal.toLowerCase().includes(normalizedQuery))
+    ? meals.filter((meal) => meal.strMeal?.toLocaleLowerCase().includes(normalizedQuery))
     : meals;
 
   return { results: filteredMeals.slice(0, 12).map(mapMealToRecipe) };
 };
 
-export const fetchVegetarianRecipes = async (query = '', offset = 0, options = {}) => {
-  try {
-    const response = await axios.get(`${BASE_URL}/complexSearch`, {
-      params: {
-        apiKey: API_KEY,
-        diet: 'vegetarian',
-        query: query,
-        number: 12,
-        offset: offset,
-        addRecipeInformation: true,
-      },
-      signal: options.signal,
-    });
-    return response.data;
-  } catch (error) {
-    if (axios.isCancel(error) || error.name === 'AbortError') throw error;
-    console.error('Error fetching recipes:', error);
-    console.warn('Spoonacular unavailable. Using TheMealDB fallback.');
-    return fetchFromMealDb(query, options);
-  }
+export const fetchVegetarianRecipes = async (query = '', options = {}) => {
+  return fetchFromMealDb(query, options);
 };
 
 export const fetchRecipeDetails = async (id, options = {}) => {
-  if (String(id).startsWith('meal-')) {
-    const mealId = String(id).replace('meal-', '');
-    const response = await axios.get(`${MEALDB_URL}/lookup.php`, {
-      params: { i: mealId },
-      signal: options.signal,
-    });
-    const meal = response.data?.meals?.[0];
-    if (!meal) throw new Error('Recipe not found');
-    return mapMealToRecipe(meal);
-  }
+  const recipeId = String(id);
+  const mealId = recipeId.match(/^meal-(\d+)$/)?.[1];
+  if (!mealId) throw new Error('Invalid recipe id');
 
-  try {
-    const response = await axios.get(`${BASE_URL}/${id}/information`, {
-      params: {
-        apiKey: API_KEY,
-      },
-      signal: options.signal,
-    });
-    return response.data;
-  } catch (error) {
-    if (axios.isCancel(error) || error.name === 'AbortError') throw error;
-    console.error('Error fetching recipe details:', error);
-    throw error;
-  }
+  const data = await fetchJson(`${MEALDB_URL}/lookup.php?i=${mealId}`, options);
+  const meal = data?.meals?.[0];
+  if (!meal) throw new Error('Recipe not found');
+  return mapMealToRecipe(meal);
 };

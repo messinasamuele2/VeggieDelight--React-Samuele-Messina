@@ -41,7 +41,7 @@ const RecipeDetails = () => {
 
   if (loading) return <div className="details-status" role="status" aria-live="polite"><div className="loader" aria-hidden="true"></div><span className="sr-only">{copy.loadingDetails}</span></div>;
   if (error) return <div className="details-status error">{error}</div>;
-  if (!recipe) return null;
+  if (!recipe) return <div className="details-status error">{detailsError}</div>;
 
   return (
     <div className="recipe-details-container">
@@ -58,7 +58,13 @@ const RecipeDetails = () => {
 
       <div className="details-content">
         <div className="details-image-container">
-          <img src={recipe.image} alt={recipe.title || 'Recipe'} className="details-image" />
+          <img
+            src={recipe.image}
+            alt={recipe.title || 'Recipe'}
+            className="details-image"
+            referrerPolicy="no-referrer"
+            onError={(event) => { event.currentTarget.hidden = true; }}
+          />
         </div>
         
         <div className="details-info">

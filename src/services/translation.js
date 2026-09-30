@@ -1,9 +1,10 @@
-import axios from 'axios';
+import { plainTextFromHtml } from '../utils/content.js';
 
 const translationCache = new Map();
 const TRANSLATION_URL = 'https://api.mymemory.translated.net/get';
 const GOOGLE_TRANSLATION_URL = 'https://translate.googleapis.com/translate_a/single';
 const MAX_TRANSLATION_CHARS = 450;
+const REQUEST_TIMEOUT_MS = 10000;
 const culinaryGlossary = [
   ['beetroot latkes', 'latkes di barbabietola'],
   ['beet latkes', 'latkes di barbabietola'],
@@ -30,17 +31,24 @@ const applyGlossary = (text) => culinaryGlossary.reduce(
   text,
 );
 
+const fetchJson = async (url, options = {}) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+    return response.json();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 const translateWithGoogle = async (text, targetLanguage, sourceLanguage) => {
-  const response = await axios.get(GOOGLE_TRANSLATION_URL, {
-    params: {
-      client: 'gtx',
-      sl: sourceLanguage,
-      tl: targetLanguage,
-      dt: 't',
-      q: text,
-    },
+  const params = new URLSearchParams({
+    client: 'gtx', sl: sourceLanguage, tl: targetLanguage, dt: 't', q: text,
   });
-  const translatedText = response.data?.[0]
+  const data = await fetchJson(`${GOOGLE_TRANSLATION_URL}?${params}`);
+  const translatedText = data?.[0]
     ?.map((segment) => segment?.[0] || '')
     .join('');
 
@@ -83,15 +91,11 @@ const translateChunk = async (text, targetLanguage, sourceLanguage) => {
   if (translationCache.has(cacheKey)) return translationCache.get(cacheKey);
 
   try {
-    const response = await axios.get(TRANSLATION_URL, {
-      params: {
-        q: text,
-        langpair: `${sourceLanguage}|${targetLanguage}`,
-      },
-    });
-    const responseData = response.data?.responseData;
+    const params = new URLSearchParams({ q: text, langpair: `${sourceLanguage}|${targetLanguage}` });
+    const data = await fetchJson(`${TRANSLATION_URL}?${params}`);
+    const responseData = data?.responseData;
     const translatedText = responseData?.translatedText;
-    const responseStatus = response.data?.responseStatus;
+    const responseStatus = data?.responseStatus;
 
     if (!translatedText || responseStatus !== 200 || /query length limit|error/i.test(translatedText)) {
       const googleTranslation = await translateWithGoogle(text, targetLanguage, sourceLanguage);
@@ -122,14 +126,12 @@ export const translateText = async (text, targetLanguage = 'it', sourceLanguage 
   return translatedChunks.join('');
 };
 
-const translateHtml = async (html, targetLanguage) => {
-  if (!html || targetLanguage === 'en') return html || '';
-
-  const parts = html.split(/(<[^>]+>)/g);
-  const translatedParts = await Promise.all(
-    parts.map((part) => (part.startsWith('<') ? part : translateText(part, targetLanguage))),
+const translateInstructions = async (text, targetLanguage) => {
+  const sections = text.split('\n').map((section) => section.trim()).filter(Boolean);
+  const translatedSections = await Promise.all(
+    sections.map((section) => translateText(section, targetLanguage)),
   );
-  return translatedParts.join('');
+  return translatedSections.join('\n');
 };
 
 export const translateRecipe = async (recipe, targetLanguage) => {
@@ -137,7 +139,7 @@ export const translateRecipe = async (recipe, targetLanguage) => {
 
   const [title, instructions, extendedIngredients] = await Promise.all([
     translateText(recipe.title, targetLanguage),
-    translateHtml(recipe.instructions, targetLanguage),
+    translateInstructions(plainTextFromHtml(recipe.instructions), targetLanguage),
     Promise.all(
       (recipe.extendedIngredients || []).map(async (ingredient) => ({
         ...ingredient,

@@ -5,7 +5,12 @@ import { SUPPORTED_LANGUAGES } from '../i18n.js';
 import { RecipeContext } from './RecipeContext.js';
 
 const getInitialLanguage = () => {
-  const savedLanguage = localStorage.getItem('veggiedelight-language');
+  let savedLanguage = null;
+  try {
+    savedLanguage = localStorage.getItem('veggiedelight-language');
+  } catch {
+    // Storage può essere disabilitato dalle impostazioni del browser.
+  }
   return SUPPORTED_LANGUAGES.includes(savedLanguage) ? savedLanguage : 'it';
 };
 
@@ -19,6 +24,7 @@ export const RecipeProvider = ({ children }) => {
   const requestControllerRef = useRef(null);
 
   const loadRecipes = useCallback(async (searchQuery = '') => {
+    const safeQuery = String(searchQuery).trim().slice(0, 100);
     requestControllerRef.current?.abort();
     const controller = new AbortController();
     requestControllerRef.current = controller;
@@ -27,9 +33,9 @@ export const RecipeProvider = ({ children }) => {
 
     try {
       const translatedQuery = language === 'it'
-        ? await translateText(searchQuery, 'en')
-        : searchQuery;
-      const data = await fetchVegetarianRecipes(translatedQuery, 0, { signal: controller.signal });
+        ? await translateText(safeQuery, 'en')
+        : safeQuery;
+      const data = await fetchVegetarianRecipes(translatedQuery, { signal: controller.signal });
       const translatedRecipes = await translateRecipes(data.results, language);
 
       if (!controller.signal.aborted) {
@@ -61,7 +67,11 @@ export const RecipeProvider = ({ children }) => {
   }, [loadRecipes]);
 
   useEffect(() => {
-    localStorage.setItem('veggiedelight-language', language);
+    try {
+      localStorage.setItem('veggiedelight-language', language);
+    } catch {
+      // L'app resta utilizzabile anche senza persistenza locale.
+    }
     document.documentElement.lang = language;
   }, [language]);
 
@@ -74,7 +84,6 @@ export const RecipeProvider = ({ children }) => {
       setQuery: updateQuery,
       loadRecipes,
       language,
-      setLanguage,
       toggleLanguage,
     }}>
       {children}

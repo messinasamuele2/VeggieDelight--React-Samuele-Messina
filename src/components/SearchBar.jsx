@@ -21,6 +21,9 @@ const SearchBar = () => {
           id="recipe-search"
           aria-label={copy.searchLabel}
           placeholder={copy.searchPlaceholder}
+          name="query"
+          maxLength={100}
+          autoComplete="off"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
