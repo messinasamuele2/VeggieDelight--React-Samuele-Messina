@@ -1,5 +1,39 @@
 const MEALDB_URL = 'https://www.themealdb.com/api/json/v1/1';
 const REQUEST_TIMEOUT_MS = 10000;
+const DEFAULT_PAGE_SIZE = 12;
+let vegetarianCatalogPromise = null;
+const SEARCH_ALIASES = {
+  peperone: ['pepper', 'peppers', 'bell pepper'],
+  peperoni: ['pepper', 'peppers', 'bell pepper'],
+  patata: ['potato', 'potatoes'],
+  patate: ['potato', 'potatoes'],
+  pomodoro: ['tomato', 'tomatoes'],
+  pomodori: ['tomato', 'tomatoes'],
+  melanzana: ['aubergine', 'eggplant'],
+  melanzane: ['aubergine', 'eggplant'],
+  zucchina: ['courgette', 'zucchini'],
+  zucchine: ['courgette', 'zucchini'],
+  cipolla: ['onion', 'onions'],
+  cipolle: ['onion', 'onions'],
+  carota: ['carrot', 'carrots'],
+  carote: ['carrot', 'carrots'],
+  cavolo: ['cabbage'],
+  fagioli: ['bean', 'beans'],
+};
+
+const normalizeSearchTerm = (term) => term
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .trim()
+  .toLocaleLowerCase();
+
+const getSearchTerms = (query, queryVariants = []) => {
+  const baseTerms = [query, ...queryVariants]
+    .map(normalizeSearchTerm)
+    .filter(Boolean);
+  const aliases = baseTerms.flatMap((term) => SEARCH_ALIASES[term] || []);
+  return [...new Set([...baseTerms, ...aliases])];
+};
 
 const fetchJson = async (url, options = {}) => {
   const controller = new AbortController();
@@ -39,15 +73,43 @@ const mapMealToRecipe = (meal) => ({
   aggregateLikes: 0,
 });
 
-const fetchFromMealDb = async (query = '', options = {}) => {
-  const data = await fetchJson(`${MEALDB_URL}/filter.php?c=Vegetarian`, options);
-  const meals = Array.isArray(data?.meals) ? data.meals : [];
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  const filteredMeals = normalizedQuery
-    ? meals.filter((meal) => meal.strMeal?.toLocaleLowerCase().includes(normalizedQuery))
-    : meals;
+const fetchVegetarianCatalog = async () => {
+  if (!vegetarianCatalogPromise) {
+    vegetarianCatalogPromise = fetchJson(`${MEALDB_URL}/filter.php?c=Vegetarian`)
+      .then((data) => (Array.isArray(data?.meals) ? data.meals : []))
+      .catch((error) => {
+        vegetarianCatalogPromise = null;
+        throw error;
+      });
+  }
 
-  return { results: filteredMeals.slice(0, 12).map(mapMealToRecipe) };
+  return vegetarianCatalogPromise;
+};
+
+const fetchFromMealDb = async (query = '', options = {}) => {
+  const {
+    offset = 0,
+    limit = DEFAULT_PAGE_SIZE,
+    queryVariants = [],
+  } = options;
+  const meals = await fetchVegetarianCatalog();
+  if (options.signal?.aborted) {
+    throw new DOMException('The request was aborted.', 'AbortError');
+  }
+  const searchTerms = getSearchTerms(query, queryVariants);
+  const filteredMeals = searchTerms.length
+    ? meals.filter((meal) => {
+      const mealName = normalizeSearchTerm(meal.strMeal || '');
+      return searchTerms.some((term) => mealName.includes(term));
+    })
+    : meals;
+  const page = filteredMeals.slice(offset, offset + limit);
+
+  return {
+    results: page.map(mapMealToRecipe),
+    nextOffset: offset + page.length,
+    hasMore: offset + page.length < filteredMeals.length,
+  };
 };
 
 export const fetchVegetarianRecipes = async (query = '', options = {}) => {

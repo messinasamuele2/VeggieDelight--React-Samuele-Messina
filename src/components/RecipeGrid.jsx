@@ -5,7 +5,7 @@ import RecipeCard from './RecipeCard.jsx';
 import './RecipeGrid.css';
 
 const RecipeGrid = () => {
-  const { recipes, loading, error, language } = useContext(RecipeContext);
+  const { recipes, loading, error, hasMore, loadMore, language } = useContext(RecipeContext);
   const copy = getMessages(language);
 
   if (loading) {
@@ -17,7 +17,7 @@ const RecipeGrid = () => {
     );
   }
 
-  if (error) {
+  if (error && recipes.length === 0) {
     return (
       <div className="status-container error" role="alert">
         <p>⚠️ {error}</p>
@@ -34,10 +34,18 @@ const RecipeGrid = () => {
   }
 
   return (
-    <div className="recipe-grid">
-      {recipes.map((recipe) => (
-        <RecipeCard key={recipe.id} recipe={recipe} />
-      ))}
+    <div>
+      {error && <div className="status-container error" role="alert"><p>⚠️ {error}</p></div>}
+      <div className="recipe-grid">
+        {recipes.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)}
+      </div>
+      {hasMore && (
+        <div className="load-more-container">
+          <button type="button" className="load-more-button" onClick={loadMore} disabled={loading}>
+            {copy.loadMore}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

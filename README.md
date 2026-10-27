@@ -30,6 +30,7 @@ L'app usa TheMealDB senza chiavi segrete, così nessun token viene incluso nel b
 
 - Non committare `.env`: contiene configurazione locale e viene escluso da Git.
 - Le chiamate API sono cancellabili per evitare che risposte vecchie sovrascrivano risultati nuovi.
+- Il catalogo vegetariano viene recuperato una sola volta e paginato localmente; ogni caricamento è limitato a 5 tentativi e mantiene i risultati parziali.
 - I dati TheMealDB vengono normalizzati in un formato unico per l'interfaccia.
 - La traduzione richiede connessione internet; in caso di errore viene mantenuto il testo originale.
 - La build include una CSP restrittiva; per un deployment pubblico configura anche gli header HTTP HSTS, `X-Content-Type-Options` e `Permissions-Policy` sul web server/CDN.
