@@ -104,3 +104,4 @@ Sentry può essere abilitato configurando `SENTRY_DSN`. Il pulsante **Simula err
 - `.env` e `.env.*`: esclusi da Git; `.env.example` è il template pubblico.
 - Sentry: codice e pulsante pronti, ma evento/dashboard richiedono `SENTRY_DSN` e un account Sentry.
 - Docker Compose locale: configurato, ma il test end-to-end è bloccato finché Virtual Machine Platform/virtualizzazione firmware viene attivata e Windows viene riavviato.
+- Deploy Netlify reale verificato tramite CLI autenticato il 19/11/2026; URL unico di verifica: https://6afec8b2b28bafc74897d15d--veggie-delight-samuele.netlify.app/
