@@ -102,7 +102,7 @@ Sentry può essere abilitato configurando `SENTRY_DSN`. Il pulsante **Simula err
 - Lint, test, build e build delle due immagini container: verificati in locale e nella pipeline verde.
 - Uptime schedulato: verificato con run GitHub Actions verde.
 - `.env` e `.env.*`: esclusi da Git; `.env.example` è il template pubblico.
-- Sentry: codice e pulsante pronti, ma evento/dashboard richiedono `SENTRY_DSN` e un account Sentry.
+- Sentry: SDK React 11.14.0 configurato, secret `SENTRY_DSN` presente su GitHub e errore test verificato nel progetto `devops-task-board-frontend`: https://devops-task-board.sentry.io/issues/162399529/ (issue `DEVOPS-TASK-BOARD-FRONTEND-2`)
 - Docker Compose locale: configurato, ma il test end-to-end è bloccato finché Virtual Machine Platform/virtualizzazione firmware viene attivata e Windows viene riavviato.
 - Deploy Netlify reale verificato tramite CLI autenticato il 19/11/2026; URL unico di verifica: https://6afec8b2b28bafc74897d15d--veggie-delight-samuele.netlify.app/
 - Secret GitHub Netlify: `NETLIFY_AUTH_TOKEN` e `NETLIFY_SITE_ID` sono configurati nel repository. La pipeline manuale è stata verificata con successo e il job `Deploy to Netlify` ha pubblicato il sito.
