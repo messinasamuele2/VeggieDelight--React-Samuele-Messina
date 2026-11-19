@@ -34,3 +34,59 @@ L'app usa TheMealDB senza chiavi segrete, così nessun token viene incluso nel b
 - I dati TheMealDB vengono normalizzati in un formato unico per l'interfaccia.
 - La traduzione richiede connessione internet; in caso di errore viene mantenuto il testo originale.
 - La build include una CSP restrittiva; per un deployment pubblico configura anche gli header HTTP HSTS, `X-Content-Type-Options` e `Permissions-Policy` sul web server/CDN.
+
+## DevOps
+
+### Ambienti
+
+- **Development**: Vite locale su `npm run dev`, variabili da `.env`, nessuna chiave cliente obbligatoria.
+- **Staging**: pull request validate da GitHub Actions e preview Netlify generata per la revisione.
+- **Production**: push su `main` pubblicato automaticamente su Netlify all'indirizzo https://veggie-delight-samuele.netlify.app/.
+
+### Architettura e strumenti
+
+VeggieDelight è una SPA React/Vite senza backend applicativo proprio. Il browser usa TheMealDB e i servizi di traduzione; il piccolo servizio backend incluso nel ciclo Docker espone soltanto `/api/health` per il monitoraggio locale.
+
+È stato scelto **GitHub Actions** perché il repository è su GitHub, consente lint/test/build container e può usare gli stessi secret per Netlify. Netlify resta la piattaforma di hosting già configurata per l'app.
+
+### Docker locale
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build
+```
+
+- Frontend: http://localhost:8080
+- Health backend: http://localhost:8080/api/health
+- Arresto: `docker compose down`
+
+`Dockerfile` usa build multi-stage per produrre l'immagine nginx di Vite. `docker-compose.yml` avvia frontend e backend health separati.
+
+### Secrets
+
+GitHub Secrets richiesti per il deploy:
+
+- `NETLIFY_AUTH_TOKEN`: token personale Netlify con permesso deploy.
+- `NETLIFY_SITE_ID`: ID del sito Netlify esistente.
+- `SENTRY_DSN`: DSN pubblico opzionale del progetto Browser Sentry.
+
+Configurazione: **Repository → Settings → Secrets and variables → Actions**.
+
+Il `.env` locale è ignorato da Git tramite `.gitignore`. I valori sono mascherati nei log; mai usare output `echo` o passaggi di debug per stampare secret.
+
+### CI/CD
+
+`.github/workflows/ci-cd.yml` viene eseguito su push `main`, pull request e manualmente. I passaggi sono:
+
+1. `npm ci`
+2. `npm run lint`
+3. `npm test`
+4. `npm run build`
+5. build delle due immagini Docker
+6. deploy produzione Netlify solo dopo la validazione
+
+### Monitoraggio
+
+`.github/workflows/uptime.yml` verifica l'URL pubblico ogni 15 minuti. Una run fallita indica sito irraggiungibile o HTML inatteso.
+
+Sentry può essere abilitato configurando `SENTRY_DSN`. Il pulsante **Simula errore** presente in produzione invia un evento manualmente. Verificare nella dashboard Sentry lo stack trace, timestamp e URL dell'evento. Un controllo UptimeRobot esterno può essere configurato come ulteriore notifica email/Telegram.

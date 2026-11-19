@@ -49,6 +49,18 @@
   line-height: 1.6;
 }
 
+.error-test-button {
+  align-self: center;
+  margin-top: 24px;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: #b33a3a;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
 @media (max-width: 768px) {
   .hero-title {
     font-size: 2rem;

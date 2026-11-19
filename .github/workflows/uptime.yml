@@ -1,0 +1,18 @@
+name: VeggieDelight uptime
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check public site
+        run: |
+          curl --fail --location --silent --show-error --max-time 20 \
+            --output /tmp/veggiedelight.html \
+            --write-out "HTTP %{http_code}\n" \
+            https://veggie-delight-samuele.netlify.app/
+          grep -q "Veggie" /tmp/veggiedelight.html

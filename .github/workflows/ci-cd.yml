@@ -1,0 +1,67 @@
+name: VeggieDelight CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event_name == 'pull_request' && 'staging' || 'development' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+      - name: Build frontend
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          if [ -n "$VITE_SENTRY_DSN" ]; then echo "::add-mask::$VITE_SENTRY_DSN"; fi
+          npm run build
+      - name: Build frontend container
+        run: docker build --tag veggiedelight-frontend .
+      - name: Build backend container
+        run: docker build --tag veggiedelight-backend ./backend
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://veggie-delight-samuele.netlify.app/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          if [ -n "$VITE_SENTRY_DSN" ]; then echo "::add-mask::$VITE_SENTRY_DSN"; fi
+          npm run build
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: ./dist
+          production-deploy: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
