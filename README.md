@@ -85,8 +85,22 @@ Il `.env` locale è ignorato da Git tramite `.gitignore`. I valori sono maschera
 5. build delle due immagini Docker
 6. deploy produzione Netlify solo dopo la validazione
 
+Run verde verificata: https://github.com/messinasamuele2/VeggieDelight--React-Samuele-Messina/actions/runs/44498449854
+
 ### Monitoraggio
 
 `.github/workflows/uptime.yml` verifica l'URL pubblico ogni 15 minuti. Una run fallita indica sito irraggiungibile o HTML inatteso.
 
+Uptime verificato: https://github.com/messinasamuele2/VeggieDelight--React-Samuele-Messina/actions/runs/44499549436
+
 Sentry può essere abilitato configurando `SENTRY_DSN`. Il pulsante **Simula errore** presente in produzione invia un evento manualmente. Verificare nella dashboard Sentry lo stack trace, timestamp e URL dell'evento. Un controllo UptimeRobot esterno può essere configurato come ulteriore notifica email/Telegram.
+
+## Stato della consegna
+
+- Repository GitHub: https://github.com/messinasamuele2/VeggieDelight--React-Samuele-Messina
+- App pubblica Netlify: https://veggie-delight-samuele.netlify.app/
+- Lint, test, build e build delle due immagini container: verificati in locale e nella pipeline verde.
+- Uptime schedulato: verificato con run GitHub Actions verde.
+- `.env` e `.env.*`: esclusi da Git; `.env.example` è il template pubblico.
+- Sentry: codice e pulsante pronti, ma evento/dashboard richiedono `SENTRY_DSN` e un account Sentry.
+- Docker Compose locale: configurato, ma il test end-to-end è bloccato finché Virtual Machine Platform/virtualizzazione firmware viene attivata e Windows viene riavviato.
