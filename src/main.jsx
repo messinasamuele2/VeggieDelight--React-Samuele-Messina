@@ -1,20 +1,17 @@
+import './instrument'
 import React from 'react'
-import ReactDOM from 'react-dom/client'
 import * as Sentry from '@sentry/react'
+import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 
-const sentryDsn = import.meta.env.VITE_SENTRY_DSN
-
-if (sentryDsn) {
-  Sentry.init({
-    dsn: sentryDsn,
-    environment: import.meta.env.MODE,
-    tracesSampleRate: 0.1,
-  })
-}
-
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById('root'), {
+  onUncaughtError: Sentry.reactErrorHandler((error, errorInfo) => {
+    console.error(error, errorInfo.componentStack)
+  }),
+  onCaughtError: Sentry.reactErrorHandler(),
+  onRecoverableError: Sentry.reactErrorHandler(),
+}).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>,
