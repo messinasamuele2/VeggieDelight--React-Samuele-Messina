@@ -44,6 +44,13 @@ jobs:
       name: production
       url: https://veggie-delight-samuele.netlify.app/
     steps:
+      - name: Verify Netlify credentials
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          test -n "$NETLIFY_AUTH_TOKEN"
+          test -n "$NETLIFY_SITE_ID"
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
